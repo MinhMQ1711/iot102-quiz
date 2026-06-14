@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyện Tập Quiz IOT102 - Phần Cứng & Code</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #22c55e;
+            --error: #ef4444;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: var(--card);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .mode-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .mode-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .mode-btn:not(.active) {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        .quiz-card {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .progress {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .question {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .option-btn {
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: white;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+        .option-btn.correct {
+            background-color: #dcfce7 !important;
+            border-color: var(--success) !important;
+            color: #166534;
+            font-weight: bold;
+        }
+        .option-btn.wrong {
+            background-color: #fee2e2 !important;
+            border-color: var(--error) !important;
+            color: #991b1b;
+        }
+        .option-btn:disabled {
+            cursor: default;
+            opacity: 0.9;
+        }
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .next-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none; /* Ẩn mặc định, hiện khi đã chọn đáp án */
+        }
+        .next-btn:hover {
+            background-color: #1d4ed8;
+        }
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f9ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            display: none;
+            font-size: 15px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .clear-log-btn {
+            background-color: var(--error);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin: 0; font-size: 1.2rem;">📚 Luyện tập IOT102</h2>
+        <div>
+            <button class="mode-btn active" onclick="setMode('all')" id="btn-all">Tất cả câu hỏi</button>
+            <button class="mode-btn" onclick="setMode('wrong')" id="btn-wrong">
+                Ôn tập câu sai (<span id="wrong-count">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <div class="quiz-card" id="quiz-container">
+        <div class="progress" id="progress-text">Câu 1 / 20</div>
+        <div class="question" id="question-text">Đang tải câu hỏi...</div>
+        <div class="options" id="options-container"></div>
+        
+        <div class="explanation" id="explanation-text"></div>
+
+        <div class="controls">
+            <button class="clear-log-btn" onclick="clearWrongLog()" style="display:none;" id="clear-log-btn">Xóa lịch sử câu sai</button>
+            <button class="next-btn" id="next-btn" onclick="nextQuestion()">Câu tiếp theo ➔</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // DỮ LIỆU CÂU HỎI (Đã chuyển sang dạng trắc nghiệm)
+    // Bạn có thể copy-paste thêm câu hỏi vào đây theo đúng định dạng
+    // ==========================================
+    const allQuestions = [
+        {
+            id: 1,
+            question: "Công thức định luật Ohm để tính điện trở là gì?",
+            options: ["R = V / I", "R = I / V", "V = R * I", "P = V * I"],
+            correct: 0,
+            explanation: "Điện trở (R) bằng Hiệu điện thế (V) chia cho Cường độ dòng điện (I)."
+        },
+        {
+            id: 2,
+            question: "Chân dài của đèn LED là cực gì?",
+            options: ["Cực Âm (Cathode)", "Cực Dương (Anode)", "Cực Ground", "Cực trung tính"],
+            correct: 1,
+            explanation: "Chân dài là cực Dương (Anode, dấu +), chân ngắn là cực Âm (Cathode, dấu -)."
+        },
+        {
+            id: 3,
+            question: "Tại sao bắt buộc phải mắc điện trở (Resistor) nối tiếp với LED?",
+            options: ["Để tăng độ sáng", "Để hạn dòng điện, bảo vệ LED không bị cháy", "Để lưu trữ điện", "Để khuếch đại tín hiệu"],
+            correct: 1,
+            explanation: "Điện trở giúp hạn dòng điện (limit current), bảo vệ LED không bị quá dòng và cháy."
+        },
+        {
+            id: 4,
+            question: "Ký hiệu ~ (dấu ngã) bên cạnh số chân trên board Arduino nghĩa là gì?",
+            options: ["Chân chỉ đọc (Input)", "Chân hỗ trợ PWM (xuất tín hiệu tương tự)", "Chân nguồn 5V", "Chân reset"],
+            correct: 1,
+            explanation: "Dấu ~ báo hiệu chân đó hỗ trợ PWM, dùng để làm mờ LED hoặc điều khiển tốc độ động cơ."
+        },
+        {
+            id: 5,
+            question: "Sự khác biệt cốt lõi giữa Arduino và Raspberry Pi là gì?",
+            options: ["Arduino chạy Linux, Pi chạy firmware", "Arduino là Vi điều khiển (ít điện), Pi là Vi xử lý chạy được Hệ điều hành", "Arduino mạnh hơn Pi về xử lý AI", "Không có sự khác biệt"],
+            correct: 1,
+            explanation: "Arduino (Microcontroller) chạy firmware, tiêu thụ ít điện. Raspberry Pi (Microprocessor) chạy được HĐH như Linux, mạnh về xử lý dữ liệu."
+        },
+        {
+            id: 6,
+            question: "Cảm biến DHT11 dùng để đo đại lượng nào?",
+            options: ["Khoảng cách", "Chuyển động", "Nhiệt độ và Độ ẩm", "Ánh sáng"],
+            correct: 2,
+            explanation: "DHT11 là cảm biến chuyên dụng để đo Nhiệt độ (Temperature) và Độ ẩm (Humidity)."
+        },
+        {
+            id: 7,
+            question: "Quang trở (LDR) thay đổi giá trị như thế nào khi có ánh sáng chiếu vào?",
+            options: ["Điện trở TĂNG lên rất cao", "Điện trở GIẢM xuống", "Không thay đổi", "Chuyển thành tụ điện"],
+            correct: 1,
+            explanation: "Quang trở có điện trở GIẢM khi có ánh sáng, và TĂNG rất cao khi ở trong bóng tối."
+        },
+        {
+            id: 8,
+            question: "Hàm setup() trong Arduino có đặc điểm gì?",
+            options: ["Chạy lặp đi lặp lại vô tận", "Chỉ chạy DUY NHẤT MỘT LẦN khi bật nguồn/reset", "Chạy khi có tín hiệu từ cảm biến", "Dùng để in dữ liệu ra màn hình"],
+            correct: 1,
+            explanation: "Hàm setup() chỉ chạy 1 lần duy nhất để khai báo biến và cấu hình chân."
+        },
+        {
+            id: 9,
+            question: "Lệnh nào dùng để BẬT LED ở chân số 13?",
+            options: ["digitalRead(13, HIGH)", "analogWrite(13, 255)", "digitalWrite(13, HIGH)", "pinMode(13, OUTPUT)"],
+            correct: 2,
+            explanation: "digitalWrite(pin, HIGH) dùng để xuất mức điện áp cao (bật) ở chân OUTPUT."
+        },
+        {
+            id: 10,
+            question: "Lệnh analogRead(A0) trả về dải giá trị nào?",
+            options: ["0 đến 255", "0 đến 1023", "0 đến 100", "0 đến 5000"],
+            correct: 1,
+            explanation: "Arduino Uno có độ phân giải 10-bit cho analogRead, trả về giá trị từ 0 đến 1023."
+        },
+        {
+            id: 11,
+            question: "Để làm mờ LED (điều chỉnh độ sáng), ta phải dùng chân có hỗ trợ gì và lệnh gì?",
+            options: ["Chân thường, lệnh digitalWrite", "Chân PWM, lệnh analogWrite", "Chân Analog, lệnh analogRead", "Chân 5V, lệnh delay"],
+            correct: 1,
+            explanation: "Phải dùng chân có dấu ~ (PWM) và lệnh analogWrite(pin, value) với value từ 0-255."
+        },
+        {
+            id: 12,
+            question: "Toán tử so sánh 'bằng nhau' trong C++ (Arduino) được viết như thế nào?",
+            options: ["=", "==", "===", "!="],
+            correct: 1,
+            explanation: "'=' là gán giá trị, '==' mới là toán tử so sánh bằng nhau."
+        },
+        {
+            id: 13,
+            question: "Hàm để in dữ liệu ra màn hình trong Python là gì?",
+            options: ["echo()", "console.log()", "print()", "printf()"],
+            correct: 2,
+            explanation: "Trong Python, hàm xuất dữ liệu ra màn hình là print()."
+        },
+        {
+            id: 14,
+            question: "Vòng lặp for trong Python để chạy 5 lần được viết thế nào?",
+            options: ["for i = 0 to 5", "for i in range(5):", "loop(5)", "while i < 5 do"],
+            correct: 1,
+            explanation: "Cú pháp vòng lặp for trong Python là 'for i in range(5):' (chạy từ 0 đến 4)."
+        },
+        {
+            id: 15,
+            question: "Giao tiếp I2C sử dụng bao nhiêu dây để truyền dữ liệu?",
+            options: ["1 dây", "2 dây (SDA và SCL)", "4 dây (MOSI, MISO, SCK, SS)", "3 dây"],
+            correct: 1,
+            explanation: "I2C chỉ cần 2 dây: SDA (dữ liệu) và SCL (xung nhịp)."
+        },
+        {
+            id: 16,
+            question: "⚠️ Điện áp logic (mức HIGH) tiêu chuẩn của chân GPIO Raspberry Pi là bao nhiêu?",
+            options: ["5V", "3.3V", "12V", "1.8V"],
+            correct: 1,
+            explanation: "Raspberry Pi dùng mức logic 3.3V. Cấp nhầm 5V có thể làm cháy board!"
+        },
+        {
+            id: 17,
+            question: "Module Relay (Rơ-le) trong IoT dùng để làm gì?",
+            options: ["Đo nhiệt độ từ xa", "Dùng tín hiệu điện áp thấp (5V) để đóng/ngắt mạch điện áp cao (220V)", "Thu phát sóng Wifi", "Lưu trữ dữ liệu"],
+            correct: 1,
+            explanation: "Relay hoạt động như một công tắc điện từ, cho phép vi điều khiển điều khiển an toàn các thiết bị công suất lớn."
+        },
+        {
+            id: 18,
+            question: "Edge Computing (Điện toán biên) có ưu điểm lớn nhất là gì?",
+            options: ["Lưu trữ dữ liệu vĩnh viễn trên Cloud", "Giảm độ trễ (phản ứng tức thì) và tiết kiệm băng thông", "Tăng tốc độ internet", "Giúp thiết bị chạy bằng năng lượng mặt trời"],
+            correct: 1,
+            explanation: "Edge Computing xử lý dữ liệu ngay tại thiết bị, giúp phản ứng nhanh (low latency) và không phụ thuộc hoàn toàn vào mạng."
+        },
+        {
+            id: 19,
+            question: "Nếu mắc LED trực tiếp vào nguồn 5V mà KHÔNG có điện trở, chuyện gì xảy ra?",
+            options: ["LED sáng bình thường và bền hơn", "LED bị quá dòng, sáng cực mạnh rồi cháy/hư hỏng ngay", "Arduino sẽ tự động tắt", "Không có hiện tượng gì"],
+            correct: 1,
+            explanation: "Không có điện trở hạn dòng, LED sẽ hút dòng điện tối đa từ nguồn và bị phá hủy ngay lập tức."
+        },
+        {
+            id: 20,
+            question: "Trong Python, khối lệnh (block) được xác định bằng cách nào?",
+            options: ["Bằng dấu ngoặc nhọn {}", "Bằng cách thụt đầu dòng (indentation)", "Bằng dấu chấm phẩy ;", "Bằng từ khóa 'end'"],
+            correct: 1,
+            explanation: "Khác với C++, Python sử dụng thụt đầu dòng (thường là 4 dấu cách) để xác định khối lệnh."
+        }
+    ];
+
+    // ==========================================
+    // LOGIC XỬ LÝ
+    // ==========================================
+    let currentMode = 'all'; // 'all' hoặc 'wrong'
+    let currentQuestionIndex = 0;
+    let currentQuestionsList = [];
+    let wrongQuestionIds = JSON.parse(localStorage.getItem('iot102_wrong_ids')) || [];
+
+    // Cập nhật số lượng câu sai trên giao diện
+    function updateWrongCount() {
+        document.getElementById('wrong-count').innerText = wrongQuestionIds.length;
+        document.getElementById('clear-log-btn').style.display = wrongQuestionIds.length > 0 ? 'block' : 'none';
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('btn-all').className = mode === 'all' ? 'mode-btn active' : 'mode-btn';
+        document.getElementById('btn-wrong').className = mode === 'wrong' ? 'mode-btn active' : 'mode-btn';
+        
+        if (mode === 'all') {
+            currentQuestionsList = [...allQuestions];
+        } else {
+            currentQuestionsList = allQuestions.filter(q => wrongQuestionIds.includes(q.id));
+            if (currentQuestionsList.length === 0) {
+                alert("Tuyệt vời! Bạn chưa có câu sai nào, hoặc đã ôn tập hết rồi.");
+                setMode('all');
+                return;
+            }
+        }
+        currentQuestionIndex = 0;
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const q = currentQuestionsList[currentQuestionIndex];
+        document.getElementById('progress-text').innerText = `Câu ${currentQuestionIndex + 1} / ${currentQuestionsList.length}`;
+        document.getElementById('question-text').innerText = q.question;
+        document.getElementById('explanation-text').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex, selectedBtn) {
+        const q = currentQuestionsList[currentQuestionIndex];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        // Vô hiệu hóa tất cả nút để không click nhiều lần
+        buttons.forEach(btn => btn.disabled = true);
+
+        if (selectedIndex === q.correct) {
+            // Chọn ĐÚNG
+            selectedBtn.classList.add('correct');
+            // Nếu đang ở chế độ ôn tập câu sai và làm đúng, xóa khỏi danh sách sai
+            if (currentMode === 'wrong') {
+                wrongQuestionIds = wrongQuestionIds.filter(id => id !== q.id);
+                localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+                updateWrongCount();
+            }
+        } else {
+            // Chọn SAI
+            selectedBtn.classList.add('wrong');
+            buttons[q.correct].classList.add('correct'); // Hiện xanh câu đúng
+            
+            // Thêm vào danh sách câu sai nếu chưa có
+            if (!wrongQuestionIds.includes(q.id)) {
+                wrongQuestionIds.push(q.id);
+                localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+                updateWrongCount();
+            }
+        }
+
+        // Hiện giải thích và nút Next
+        document.getElementById('explanation-text').innerText = "💡 Giải thích: " + q.explanation;
+        document.getElementById('explanation-text').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'block';
+
+        // Tự động chuyển câu sau 1.5 giây nếu chọn đúng, 2.5 giây nếu chọn sai (để kịp đọc giải thích)
+        const delay = selectedIndex === q.correct ? 1200 : 2500;
+        setTimeout(() => {
+            // Chỉ tự động next nếu người dùng chưa bấm nút next thủ công
+            if (document.getElementById('next-btn').style.display === 'block') {
+                nextQuestion();
+            }
+        }, delay);
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < currentQuestionsList.length) {
+            loadQuestion();
+        } else {
+            // Hết câu hỏi
+            document.getElementById('quiz-container').innerHTML = `
+                <div class="empty-state">
+                    <h2>🎉 Hoàn thành!</h2>
+                    <p>Bạn đã hoàn thành phần luyện tập này.</p>
+                    <button class="mode-btn active" onclick="location.reload()" style="margin-top: 20px;">Làm lại từ đầu</button>
+                </div>
+            `;
+        }
+    }
+
+    function clearWrongLog() {
+        if (confirm("Bạn có chắc muốn xóa toàn bộ lịch sử câu sai không?")) {
+            wrongQuestionIds = [];
+            localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+            updateWrongCount();
+            alert("Đã xóa lịch sử!");
+            setMode('all');
+        }
+    }
+
+    // Khởi chạy lần đầu
+    updateWrongCount();
+    setMode('all');
+</script>
+
+</body>
+</html>

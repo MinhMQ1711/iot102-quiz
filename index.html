@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luyện Tập Quiz IOT102 - Phần Cứng & Code</title>
+    <title>Luyện Tập Quiz IOT102 - Full 59 Câu</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -32,22 +32,33 @@
             padding: 15px 20px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .mode-btn {
             padding: 8px 16px;
-            border: none;
+            border: 2px solid transparent;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
             transition: 0.2s;
+            background-color: #e5e7eb;
+            color: #374151;
         }
         .mode-btn.active {
             background-color: var(--primary);
             color: white;
         }
-        .mode-btn:not(.active) {
-            background-color: #e5e7eb;
-            color: #374151;
+        /* Style riêng cho nút Shuffle khi bật */
+        .mode-btn.shuffle-active {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #f59e0b;
         }
         .quiz-card {
             background: var(--card);
@@ -60,6 +71,8 @@
             color: #6b7280;
             margin-bottom: 15px;
             font-weight: 600;
+            display: flex;
+            justify-content: space-between;
         }
         .question {
             font-size: 20px;
@@ -116,7 +129,7 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            display: none; /* Ẩn mặc định, hiện khi đã chọn đáp án */
+            display: none;
         }
         .next-btn:hover {
             background-color: #1d4ed8;
@@ -129,6 +142,7 @@
             border-radius: 4px;
             display: none;
             font-size: 15px;
+            line-height: 1.5;
         }
         .empty-state {
             text-align: center;
@@ -150,17 +164,26 @@
 
 <div class="container">
     <div class="header">
-        <h2 style="margin: 0; font-size: 1.2rem;">📚 Luyện tập IOT102</h2>
         <div>
-            <button class="mode-btn active" onclick="setMode('all')" id="btn-all">Tất cả câu hỏi</button>
+            <h2 style="margin: 0; font-size: 1.2rem;">📚 Luyện tập IOT102 (59 câu)</h2>
+        </div>
+        <div class="header-controls">
+            <button class="mode-btn active" onclick="setMode('all')" id="btn-all">Tất cả</button>
             <button class="mode-btn" onclick="setMode('wrong')" id="btn-wrong">
-                Ôn tập câu sai (<span id="wrong-count">0</span>)
+                Câu sai (<span id="wrong-count">0</span>)
+            </button>
+            <!-- NÚT TRÁO ĐỔI MỚI -->
+            <button class="mode-btn" id="btn-shuffle" onclick="toggleShuffle()">
+                🔀 Tráo đổi: Tắt
             </button>
         </div>
     </div>
 
     <div class="quiz-card" id="quiz-container">
-        <div class="progress" id="progress-text">Câu 1 / 20</div>
+        <div class="progress">
+            <span id="progress-text">Câu 1 / 59</span>
+            <span id="score-text">Đúng: 0</span>
+        </div>
         <div class="question" id="question-text">Đang tải câu hỏi...</div>
         <div class="options" id="options-container"></div>
         
@@ -175,161 +198,107 @@
 
 <script>
     // ==========================================
-    // DỮ LIỆU CÂU HỎI (Đã chuyển sang dạng trắc nghiệm)
-    // Bạn có thể copy-paste thêm câu hỏi vào đây theo đúng định dạng
+    // DỮ LIỆU 59 CÂU HỎI FULL (Giữ nguyên thứ tự gốc)
     // ==========================================
-    const allQuestions = [
-        {
-            id: 1,
-            question: "Công thức định luật Ohm để tính điện trở là gì?",
-            options: ["R = V / I", "R = I / V", "V = R * I", "P = V * I"],
-            correct: 0,
-            explanation: "Điện trở (R) bằng Hiệu điện thế (V) chia cho Cường độ dòng điện (I)."
-        },
-        {
-            id: 2,
-            question: "Chân dài của đèn LED là cực gì?",
-            options: ["Cực Âm (Cathode)", "Cực Dương (Anode)", "Cực Ground", "Cực trung tính"],
-            correct: 1,
-            explanation: "Chân dài là cực Dương (Anode, dấu +), chân ngắn là cực Âm (Cathode, dấu -)."
-        },
-        {
-            id: 3,
-            question: "Tại sao bắt buộc phải mắc điện trở (Resistor) nối tiếp với LED?",
-            options: ["Để tăng độ sáng", "Để hạn dòng điện, bảo vệ LED không bị cháy", "Để lưu trữ điện", "Để khuếch đại tín hiệu"],
-            correct: 1,
-            explanation: "Điện trở giúp hạn dòng điện (limit current), bảo vệ LED không bị quá dòng và cháy."
-        },
-        {
-            id: 4,
-            question: "Ký hiệu ~ (dấu ngã) bên cạnh số chân trên board Arduino nghĩa là gì?",
-            options: ["Chân chỉ đọc (Input)", "Chân hỗ trợ PWM (xuất tín hiệu tương tự)", "Chân nguồn 5V", "Chân reset"],
-            correct: 1,
-            explanation: "Dấu ~ báo hiệu chân đó hỗ trợ PWM, dùng để làm mờ LED hoặc điều khiển tốc độ động cơ."
-        },
-        {
-            id: 5,
-            question: "Sự khác biệt cốt lõi giữa Arduino và Raspberry Pi là gì?",
-            options: ["Arduino chạy Linux, Pi chạy firmware", "Arduino là Vi điều khiển (ít điện), Pi là Vi xử lý chạy được Hệ điều hành", "Arduino mạnh hơn Pi về xử lý AI", "Không có sự khác biệt"],
-            correct: 1,
-            explanation: "Arduino (Microcontroller) chạy firmware, tiêu thụ ít điện. Raspberry Pi (Microprocessor) chạy được HĐH như Linux, mạnh về xử lý dữ liệu."
-        },
-        {
-            id: 6,
-            question: "Cảm biến DHT11 dùng để đo đại lượng nào?",
-            options: ["Khoảng cách", "Chuyển động", "Nhiệt độ và Độ ẩm", "Ánh sáng"],
-            correct: 2,
-            explanation: "DHT11 là cảm biến chuyên dụng để đo Nhiệt độ (Temperature) và Độ ẩm (Humidity)."
-        },
-        {
-            id: 7,
-            question: "Quang trở (LDR) thay đổi giá trị như thế nào khi có ánh sáng chiếu vào?",
-            options: ["Điện trở TĂNG lên rất cao", "Điện trở GIẢM xuống", "Không thay đổi", "Chuyển thành tụ điện"],
-            correct: 1,
-            explanation: "Quang trở có điện trở GIẢM khi có ánh sáng, và TĂNG rất cao khi ở trong bóng tối."
-        },
-        {
-            id: 8,
-            question: "Hàm setup() trong Arduino có đặc điểm gì?",
-            options: ["Chạy lặp đi lặp lại vô tận", "Chỉ chạy DUY NHẤT MỘT LẦN khi bật nguồn/reset", "Chạy khi có tín hiệu từ cảm biến", "Dùng để in dữ liệu ra màn hình"],
-            correct: 1,
-            explanation: "Hàm setup() chỉ chạy 1 lần duy nhất để khai báo biến và cấu hình chân."
-        },
-        {
-            id: 9,
-            question: "Lệnh nào dùng để BẬT LED ở chân số 13?",
-            options: ["digitalRead(13, HIGH)", "analogWrite(13, 255)", "digitalWrite(13, HIGH)", "pinMode(13, OUTPUT)"],
-            correct: 2,
-            explanation: "digitalWrite(pin, HIGH) dùng để xuất mức điện áp cao (bật) ở chân OUTPUT."
-        },
-        {
-            id: 10,
-            question: "Lệnh analogRead(A0) trả về dải giá trị nào?",
-            options: ["0 đến 255", "0 đến 1023", "0 đến 100", "0 đến 5000"],
-            correct: 1,
-            explanation: "Arduino Uno có độ phân giải 10-bit cho analogRead, trả về giá trị từ 0 đến 1023."
-        },
-        {
-            id: 11,
-            question: "Để làm mờ LED (điều chỉnh độ sáng), ta phải dùng chân có hỗ trợ gì và lệnh gì?",
-            options: ["Chân thường, lệnh digitalWrite", "Chân PWM, lệnh analogWrite", "Chân Analog, lệnh analogRead", "Chân 5V, lệnh delay"],
-            correct: 1,
-            explanation: "Phải dùng chân có dấu ~ (PWM) và lệnh analogWrite(pin, value) với value từ 0-255."
-        },
-        {
-            id: 12,
-            question: "Toán tử so sánh 'bằng nhau' trong C++ (Arduino) được viết như thế nào?",
-            options: ["=", "==", "===", "!="],
-            correct: 1,
-            explanation: "'=' là gán giá trị, '==' mới là toán tử so sánh bằng nhau."
-        },
-        {
-            id: 13,
-            question: "Hàm để in dữ liệu ra màn hình trong Python là gì?",
-            options: ["echo()", "console.log()", "print()", "printf()"],
-            correct: 2,
-            explanation: "Trong Python, hàm xuất dữ liệu ra màn hình là print()."
-        },
-        {
-            id: 14,
-            question: "Vòng lặp for trong Python để chạy 5 lần được viết thế nào?",
-            options: ["for i = 0 to 5", "for i in range(5):", "loop(5)", "while i < 5 do"],
-            correct: 1,
-            explanation: "Cú pháp vòng lặp for trong Python là 'for i in range(5):' (chạy từ 0 đến 4)."
-        },
-        {
-            id: 15,
-            question: "Giao tiếp I2C sử dụng bao nhiêu dây để truyền dữ liệu?",
-            options: ["1 dây", "2 dây (SDA và SCL)", "4 dây (MOSI, MISO, SCK, SS)", "3 dây"],
-            correct: 1,
-            explanation: "I2C chỉ cần 2 dây: SDA (dữ liệu) và SCL (xung nhịp)."
-        },
-        {
-            id: 16,
-            question: "⚠️ Điện áp logic (mức HIGH) tiêu chuẩn của chân GPIO Raspberry Pi là bao nhiêu?",
-            options: ["5V", "3.3V", "12V", "1.8V"],
-            correct: 1,
-            explanation: "Raspberry Pi dùng mức logic 3.3V. Cấp nhầm 5V có thể làm cháy board!"
-        },
-        {
-            id: 17,
-            question: "Module Relay (Rơ-le) trong IoT dùng để làm gì?",
-            options: ["Đo nhiệt độ từ xa", "Dùng tín hiệu điện áp thấp (5V) để đóng/ngắt mạch điện áp cao (220V)", "Thu phát sóng Wifi", "Lưu trữ dữ liệu"],
-            correct: 1,
-            explanation: "Relay hoạt động như một công tắc điện từ, cho phép vi điều khiển điều khiển an toàn các thiết bị công suất lớn."
-        },
-        {
-            id: 18,
-            question: "Edge Computing (Điện toán biên) có ưu điểm lớn nhất là gì?",
-            options: ["Lưu trữ dữ liệu vĩnh viễn trên Cloud", "Giảm độ trễ (phản ứng tức thì) và tiết kiệm băng thông", "Tăng tốc độ internet", "Giúp thiết bị chạy bằng năng lượng mặt trời"],
-            correct: 1,
-            explanation: "Edge Computing xử lý dữ liệu ngay tại thiết bị, giúp phản ứng nhanh (low latency) và không phụ thuộc hoàn toàn vào mạng."
-        },
-        {
-            id: 19,
-            question: "Nếu mắc LED trực tiếp vào nguồn 5V mà KHÔNG có điện trở, chuyện gì xảy ra?",
-            options: ["LED sáng bình thường và bền hơn", "LED bị quá dòng, sáng cực mạnh rồi cháy/hư hỏng ngay", "Arduino sẽ tự động tắt", "Không có hiện tượng gì"],
-            correct: 1,
-            explanation: "Không có điện trở hạn dòng, LED sẽ hút dòng điện tối đa từ nguồn và bị phá hủy ngay lập tức."
-        },
-        {
-            id: 20,
-            question: "Trong Python, khối lệnh (block) được xác định bằng cách nào?",
-            options: ["Bằng dấu ngoặc nhọn {}", "Bằng cách thụt đầu dòng (indentation)", "Bằng dấu chấm phẩy ;", "Bằng từ khóa 'end'"],
-            correct: 1,
-            explanation: "Khác với C++, Python sử dụng thụt đầu dòng (thường là 4 dấu cách) để xác định khối lệnh."
-        }
+    const allQuestionsData = [
+        { id: 1, q: "Công thức định luật Ohm để tính điện trở là gì?", opts: ["R = V / I", "R = I / V", "V = R * I", "P = V * I"], ans: "R = V / I", exp: "Điện trở (R) bằng Hiệu điện thế (V) chia cho Cường độ dòng điện (I)." },
+        { id: 2, q: "Chân dài của đèn LED là cực gì?", opts: ["Cực Âm (Cathode)", "Cực Dương (Anode)", "Cực Ground", "Cực trung tính"], ans: "Cực Dương (Anode)", exp: "Chân dài là cực Dương (Anode, dấu +), chân ngắn là cực Âm (Cathode, dấu -)." },
+        { id: 3, q: "Tại sao bắt buộc phải mắc điện trở (Resistor) nối tiếp với LED?", opts: ["Để tăng độ sáng", "Để hạn dòng điện, bảo vệ LED không bị cháy", "Để lưu trữ điện", "Để khuếch đại tín hiệu"], ans: "Để hạn dòng điện, bảo vệ LED không bị cháy", exp: "Điện trở giúp hạn dòng điện (limit current), bảo vệ LED không bị quá dòng và cháy." },
+        { id: 4, q: "Nếu mắc LED trực tiếp vào nguồn 5V mà không có điện trở, chuyện gì xảy ra?", opts: ["LED sáng bình thường", "LED bị quá dòng, sáng cực mạnh rồi cháy/hư hỏng ngay", "Arduino sẽ tự động tắt", "Không có hiện tượng gì"], ans: "LED bị quá dòng, sáng cực mạnh rồi cháy/hư hỏng ngay", exp: "Không có điện trở hạn dòng, LED sẽ hút dòng điện tối đa từ nguồn và bị phá hủy ngay lập tức." },
+        { id: 5, q: "Breadboard (Bảng mạch thử) có đặc điểm gì?", opts: ["Các lỗ trên cùng hàng ngang thông điện với nhau", "Các lỗ trên cùng cột dọc thông điện với nhau", "Phải hàn linh kiện mới dùng được", "Chỉ dùng cho mạch in"], ans: "Các lỗ trên cùng hàng ngang thông điện với nhau", exp: "Các lỗ trên cùng một hàng ngang (được nối sẵn bằng kim loại) sẽ thông điện với nhau, dùng để lắp ráp thử nghiệm không cần hàn." },
+        { id: 6, q: "Linh kiện nào chỉ cho dòng điện đi qua theo MỘT chiều duy nhất?", opts: ["Điện trở", "Tụ điện", "Diode", "Cuộn cảm"], ans: "Diode", exp: "Diode (và LED là một loại Diode phát quang) chỉ cho dòng điện đi từ Anode sang Cathode." },
+        { id: 7, q: "Ký hiệu ~ (dấu ngã) bên cạnh số chân trên board Arduino nghĩa là gì?", opts: ["Chân chỉ đọc (Input)", "Chân hỗ trợ PWM (xuất tín hiệu tương tự)", "Chân nguồn 5V", "Chân reset"], ans: "Chân hỗ trợ PWM (xuất tín hiệu tương tự)", exp: "Dấu ~ báo hiệu chân đó hỗ trợ PWM, dùng để làm mờ LED hoặc điều khiển tốc độ động cơ." },
+        { id: 8, q: "Sự khác biệt cốt lõi giữa Arduino và Raspberry Pi?", opts: ["Arduino chạy Linux, Pi chạy firmware", "Arduino là Vi điều khiển (ít điện), Pi là Vi xử lý chạy được Hệ điều hành", "Arduino mạnh hơn Pi về xử lý AI", "Không có sự khác biệt"], ans: "Arduino là Vi điều khiển (ít điện), Pi là Vi xử lý chạy được Hệ điều hành", exp: "Arduino (Microcontroller) chạy firmware, tiêu thụ ít điện. Raspberry Pi (Microprocessor) chạy được HĐH như Linux." },
+        { id: 9, q: "Điện áp hoạt động logic tiêu chuẩn (HIGH) của Arduino Uno là bao nhiêu?", opts: ["3.3V", "5V", "12V", "9V"], ans: "5V", exp: "Arduino Uno sử dụng mức logic 5V cho HIGH và 0V cho LOW." },
+        { id: 10, q: "Relay (Rơ-le) dùng để làm gì trong IoT?", opts: ["Đo nhiệt độ từ xa", "Dùng tín hiệu điện áp thấp (5V) để đóng/ngắt mạch điện áp cao (220V)", "Thu phát sóng Wifi", "Lưu trữ dữ liệu"], ans: "Dùng tín hiệu điện áp thấp (5V) để đóng/ngắt mạch điện áp cao (220V)", exp: "Relay hoạt động như một công tắc điện từ, cho phép vi điều khiển điều khiển an toàn các thiết bị công suất lớn." },
+        { id: 11, q: "Sensor (Cảm biến) đóng vai trò gì trong hệ thống IoT?", opts: ["Thiết bị OUTPUT (Đầu ra)", "Thiết bị INPUT (Đầu vào) thu thập dữ liệu", "Thiết bị lưu trữ", "Thiết bị hiển thị"], ans: "Thiết bị INPUT (Đầu vào) thu thập dữ liệu", exp: "Sensor là thiết bị Input, dùng để đo đạc và thu thập dữ liệu từ môi trường." },
+        { id: 12, q: "Actuator (Thiết bị chấp hành) đóng vai trò gì?", opts: ["Thu thập dữ liệu môi trường", "Thực hiện hành động vật lý dựa trên lệnh (Output)", "Lưu trữ dữ liệu lên Cloud", "Mã hóa dữ liệu"], ans: "Thực hiện hành động vật lý dựa trên lệnh (Output)", exp: "Actuator là thiết bị Output, biến đổi tín hiệu điện thành hành động (LED sáng, motor quay, loa kêu)." },
+        { id: 13, q: "Cảm biến DHT11 dùng để đo đại lượng nào?", opts: ["Khoảng cách", "Chuyển động", "Nhiệt độ và Độ ẩm", "Ánh sáng"], ans: "Nhiệt độ và Độ ẩm", exp: "DHT11 là cảm biến chuyên dụng để đo Nhiệt độ (Temperature) và Độ ẩm (Humidity)." },
+        { id: 14, q: "Cảm biến siêu âm (Ultrasonic HC-SR04) dùng để làm gì?", opts: ["Đo nhiệt độ", "Đo khoảng cách bằng sóng siêu âm", "Đo độ ẩm", "Phát hiện khí gas"], ans: "Đo khoảng cách bằng sóng siêu âm", exp: "HC-SR04 phát và thu sóng siêu âm để tính toán khoảng cách đến vật cản." },
+        { id: 15, q: "Quang trở (LDR) thay đổi giá trị như thế nào khi có ánh sáng chiếu vào?", opts: ["Điện trở TĂNG lên rất cao", "Điện trở GIẢM xuống", "Không thay đổi", "Chuyển thành tụ điện"], ans: "Điện trở GIẢM xuống", exp: "Quang trở có điện trở GIẢM khi có ánh sáng, và TĂNG rất cao khi ở trong bóng tối." },
+        { id: 16, q: "Loa Buzzer (chuông báo) và Động cơ DC (Motor) là Input hay Output?", opts: ["Input", "Output (Actuator)", "Vừa Input vừa Output", "Không phải cả hai"], ans: "Output (Actuator)", exp: "Chúng là thiết bị chấp hành (Actuator), nhận lệnh từ vi điều khiển để tạo ra âm thanh hoặc chuyển động." },
+        { id: 17, q: "Cấu trúc code Arduino bắt buộc phải có 2 hàm nào?", opts: ["start() và stop()", "init() và run()", "setup() và loop()", "begin() và end()"], ans: "setup() và loop()", exp: "Mọi sketch Arduino đều cần hàm setup() (chạy 1 lần) và loop() (chạy lặp lại)." },
+        { id: 18, q: "Hàm setup() có đặc điểm gì?", opts: ["Chạy lặp đi lặp lại vô tận", "Chỉ chạy DUY NHẤT MỘT LẦN khi bật nguồn/reset", "Chạy khi có tín hiệu từ cảm biến", "Dùng để in dữ liệu ra màn hình"], ans: "Chỉ chạy DUY NHẤT MỘT LẦN khi bật nguồn/reset", exp: "Hàm setup() chỉ chạy 1 lần duy nhất để khai báo biến và cấu hình chân." },
+        { id: 19, q: "Hàm loop() có đặc điểm gì?", opts: ["Chỉ chạy 1 lần", "Chạy LẶP ĐI LẶP LẠI VÔ TẬN sau khi setup() kết thúc", "Chỉ chạy khi có internet", "Dùng để khai báo biến"], ans: "Chạy LẶP ĐI LẶP LẠI VÔ TẬN sau khi setup() kết thúc", exp: "Hàm loop() chứa mã lệnh chính, được thực thi liên tục." },
+        { id: 20, q: "Lệnh để cấu hình chân số 13 là đầu ra (OUTPUT)?", opts: ["pinMode(13, INPUT)", "pinMode(13, OUTPUT)", "digitalWrite(13, OUTPUT)", "analogMode(13, OUT)"], ans: "pinMode(13, OUTPUT)", exp: "Hàm pinMode() dùng để thiết lập chế độ cho chân, OUTPUT là đầu ra." },
+        { id: 21, q: "Lệnh để cấu hình chân số 2 là đầu vào (INPUT)?", opts: ["pinMode(2, INPUT)", "pinMode(2, OUTPUT)", "digitalRead(2, INPUT)", "setPin(2, IN)"], ans: "pinMode(2, INPUT)", exp: "pinMode(2, INPUT) cấu hình chân 2 để đọc tín hiệu từ bên ngoài (như nút nhấn)." },
+        { id: 22, q: "Lệnh để BẬT LED ở chân 13?", opts: ["digitalRead(13, HIGH)", "analogWrite(13, 255)", "digitalWrite(13, HIGH)", "pinMode(13, ON)"], ans: "digitalWrite(13, HIGH)", exp: "digitalWrite(pin, HIGH) xuất mức điện áp cao (5V) để bật thiết bị ở chân OUTPUT." },
+        { id: 23, q: "Lệnh để TẮT LED ở chân 13?", opts: ["digitalWrite(13, LOW)", "digitalWrite(13, OFF)", "analogWrite(13, 0)", "pinMode(13, LOW)"], ans: "digitalWrite(13, LOW)", exp: "digitalWrite(pin, LOW) xuất mức điện áp thấp (0V) để tắt thiết bị." },
+        { id: 24, q: "Lệnh để ĐỌC trạng thái của nút nhấn ở chân 2?", opts: ["digitalWrite(2)", "analogRead(2)", "digitalRead(2)", "readPin(2)"], ans: "digitalRead(2)", exp: "digitalRead() trả về giá trị HIGH hoặc LOW từ chân INPUT." },
+        { id: 25, q: "Lệnh analogRead(A0) trả về dải giá trị nào?", opts: ["0 đến 255", "0 đến 1023", "0 đến 100", "0 đến 5000"], ans: "0 đến 1023", exp: "Arduino Uno có bộ chuyển đổi ADC 10-bit, trả về giá trị từ 0 đến 1023 (tương ứng 0V-5V)." },
+        { id: 26, q: "Để làm mờ LED (điều chỉnh độ sáng), ta dùng lệnh gì và chân nào?", opts: ["Chân thường, lệnh digitalWrite", "Chân PWM (~), lệnh analogWrite", "Chân Analog, lệnh analogRead", "Chân 5V, lệnh delay"], ans: "Chân PWM (~), lệnh analogWrite", exp: "Phải dùng chân có dấu ~ (PWM) và lệnh analogWrite(pin, value) với value từ 0-255." },
+        { id: 27, q: "Lệnh delay(1000); có nghĩa là gì?", opts: ["Dừng chương trình 1000 giây", "Dừng chương trình 1000 mili-giây (1 giây)", "Chạy nhanh hơn 1000 lần", "Lặp lại 1000 lần"], ans: "Dừng chương trình 1000 mili-giây (1 giây)", exp: "Hàm delay() nhận tham số là mili-giây. 1000ms = 1 giây." },
+        { id: 28, q: "Toán tử so sánh 'bằng nhau' trong C++ (Arduino) được viết như thế nào?", opts: ["=", "==", "===", "!="], ans: "==", exp: "'=' là toán tử gán giá trị, '==' mới là toán tử so sánh bằng nhau." },
+        { id: 29, q: "Toán tử logic 'VÀ' và 'HOẶC' trong C++ là gì?", opts: ["AND, OR", "&&, ||", "&, |", "&&, &&"], ans: "&&, ||", exp: "Trong C++, 'VÀ' là && (Logical AND), 'HOẶC' là || (Logical OR)." },
+        { id: 30, q: "Khai báo một biến số nguyên và một biến số thực trong C++?", opts: ["int và float", "string và int", "float và char", "bool và int"], ans: "int và float", exp: "Số nguyên dùng 'int' (ví dụ: int x = 5), số thực dùng 'float' (ví dụ: float y = 3.14)." },
+        { id: 31, q: "Để in dữ liệu ra màn hình Serial Monitor, ta cần làm 2 bước gì?", opts: ["Serial.print() trong setup, Serial.begin() trong loop", "Serial.begin(9600) trong setup, Serial.print() trong loop", "Chỉ cần Serial.print()", "Không cần khai báo"], ans: "Serial.begin(9600) trong setup, Serial.print() trong loop", exp: "Phải khởi tạo tốc độ baud bằng Serial.begin() trước khi dùng Serial.print() để gửi dữ liệu." },
+        { id: 32, q: "Cấu trúc câu lệnh điều kiện 'Nếu nhiệt độ > 30 thì bật quạt' viết thế nào?", opts: ["if (temp > 30) { digitalWrite(quat, HIGH); }", "if temp > 30 then digitalWrite(quat, HIGH)", "while (temp > 30) { digitalWrite(quat, HIGH); }", "for (temp > 30) { digitalWrite(quat, HIGH); }"], ans: "if (temp > 30) { digitalWrite(quat, HIGH); }", exp: "Cú pháp điều kiện trong C++ là if (điều kiện) { khối lệnh }." },
+        { id: 33, q: "Hàm để in dữ liệu ra màn hình trong Python là gì?", opts: ["echo()", "console.log()", "print()", "printf()"], ans: "print()", exp: "Trong Python, hàm xuất dữ liệu ra màn hình là print()." },
+        { id: 34, q: "Kiểu dữ liệu của biến a = 10 và b = 10.5 trong Python?", opts: ["a là int, b là float", "a là float, b là int", "Cả hai đều là string", "Cả hai đều là int"], ans: "a là int, b là float", exp: "10 là số nguyên (int), 10.5 là số thực có dấu phẩy động (float)." },
+        { id: 35, q: "Vòng lặp for trong Python để chạy 5 lần được viết thế nào?", opts: ["for i = 0 to 5", "for i in range(5):", "loop(5)", "while i < 5 do"], ans: "for i in range(5):", exp: "Cú pháp vòng lặp for trong Python là 'for i in range(5):' (chạy từ 0 đến 4, tổng cộng 5 lần)." },
+        { id: 36, q: "Ký hiệu để viết ghi chú (comment) một dòng trong Python?", opts: ["//", "/* */", "#", "--"], ans: "#", exp: "Trong Python, dấu thăng (#) dùng để comment một dòng." },
+        { id: 37, q: "Trong Python, khối lệnh (block) được xác định bằng cách nào?", opts: ["Bằng dấu ngoặc nhọn {}", "Bằng cách thụt đầu dòng (indentation)", "Bằng dấu chấm phẩy ;", "Bằng từ khóa 'end'"], ans: "Bằng cách thụt đầu dòng (indentation)", exp: "Khác với C++, Python sử dụng thụt đầu dòng (thường là 4 dấu cách) để xác định khối lệnh." },
+        { id: 38, q: "Cảm biến PIR (HC-SR501) dùng để làm gì?", opts: ["Đo nhiệt độ", "Phát hiện chuyển động của con người", "Đo khoảng cách", "Đo ánh sáng"], ans: "Phát hiện chuyển động của con người", exp: "Cảm biến PIR (Passive Infrared) phát hiện sự thay đổi bức xạ hồng ngoại, thường dùng để phát hiện chuyển động người." },
+        { id: 39, q: "Cảm biến khí gas MQ-2 hoặc MQ-135 dùng để làm gì?", opts: ["Đo độ ẩm", "Phát hiện khói, khí gas dễ cháy hoặc chất lượng không khí", "Đo vận tốc gió", "Phát hiện chuyển động"], ans: "Phát hiện khói, khí gas dễ cháy hoặc chất lượng không khí", exp: "Dòng cảm biến MQ (như MQ-2, MQ-135) chuyên dùng để phát hiện các loại khí và khói." },
+        { id: 40, q: "Màn hình LCD 1602 có ý nghĩa các con số 16 và 02 là gì?", opts: ["16 màu, 2 chế độ", "Hiển thị tối đa 16 ký tự trên 2 dòng", "16 chân nối, 2 nguồn điện", "16 bit dữ liệu, 2 bit điều khiển"], ans: "Hiển thị tối đa 16 ký tự trên 2 dòng", exp: "1602 nghĩa là màn hình có 2 dòng, mỗi dòng hiển thị được 16 ký tự." },
+        { id: 41, q: "Cảm biến đo nhiệt độ hồng ngoại (như MLX90614) có ưu điểm gì?", opts: ["Rẻ nhất", "Đo nhiệt độ bề mặt vật thể từ xa, không cần tiếp xúc", "Tiêu thụ điện năng cao nhất", "Chỉ đo được nhiệt độ âm"], ans: "Đo nhiệt độ bề mặt vật thể từ xa, không cần tiếp xúc", exp: "Cảm biến hồng ngoại đo bức xạ nhiệt, cho phép đo từ xa mà không cần chạm vào vật thể (ví dụ: đo thân nhiệt)." },
+        { id: 42, q: "Giao tiếp I2C sử dụng bao nhiêu dây để truyền dữ liệu?", opts: ["1 dây", "2 dây (SDA và SCL)", "4 dây (MOSI, MISO, SCK, SS)", "3 dây"], ans: "2 dây (SDA và SCL)", exp: "I2C chỉ cần 2 dây: SDA (Serial Data - dữ liệu) và SCL (Serial Clock - xung nhịp)." },
+        { id: 43, q: "Giao tiếp SPI sử dụng bao nhiêu dây?", opts: ["2 dây", "3 dây", "4 dây (MOSI, MISO, SCK, SS/CS)", "1 dây"], ans: "4 dây (MOSI, MISO, SCK, SS/CS)", exp: "SPI là giao tiếp đồng bộ 4 dây: Master Out Slave In, Master In Slave Out, Serial Clock, và Slave Select." },
+        { id: 44, q: "Giao tiếp UART (hay Serial) sử dụng bao nhiêu dây chính để truyền nhận?", opts: ["1 dây", "2 dây (TX và RX)", "4 dây", "8 dây"], ans: "2 dây (TX và RX)", exp: "UART dùng 2 dây: TX (Transmit - Truyền) và RX (Receive - Nhận). TX của board này nối với RX của board kia." },
+        { id: 45, q: "Số chân GPIO tiêu chuẩn trên Raspberry Pi (bản 3, 4) là bao nhiêu?", opts: ["20 chân", "40 chân", "14 chân", "8 chân"], ans: "40 chân", exp: "Raspberry Pi các đời gần đây (3, 4, 5) đều có header 40 chân GPIO." },
+        { id: 46, q: "⚠️ Điện áp logic (mức HIGH) tiêu chuẩn của chân GPIO Raspberry Pi là bao nhiêu?", opts: ["5V", "3.3V", "12V", "1.8V"], ans: "3.3V", exp: "Raspberry Pi dùng mức logic 3.3V. Cấp nhầm 5V vào chân GPIO có thể làm cháy board!" },
+        { id: 47, q: "Thư viện Python phổ biến nhất để điều khiển chân GPIO trên Raspberry Pi là gì?", opts: ["numpy", "RPi.GPIO hoặc gpiozero", "pandas", "matplotlib"], ans: "RPi.GPIO hoặc gpiozero", exp: "RPi.GPIO và gpiozero là 2 thư viện tiêu chuẩn để điều khiển phần cứng trên Raspberry Pi bằng Python." },
+        { id: 48, q: "Lệnh Python nào dùng để cài đặt thêm thư viện từ internet trên Raspberry Pi?", opts: ["npm install", "pip install <tên_thư_viện>", "apt get python", "download library"], ans: "pip install <tên_thư_viện>", exp: "pip là trình quản lý gói của Python, dùng lệnh 'pip install' để tải thư viện về." },
+        { id: 49, q: "Trong Arduino, hàm map(value, fromLow, fromHigh, toLow, toHigh) dùng để làm gì?", opts: ["Vẽ bản đồ", "Ánh xạ (chuyển đổi) tỉ lệ giá trị từ khoảng này sang khoảng khác", "Sắp xếp mảng", "Tạo độ trễ"], ans: "Ánh xạ (chuyển đổi) tỉ lệ giá trị từ khoảng này sang khoảng khác", exp: "Hàm map() dùng để chuyển đổi tỉ lệ, ví dụ: đổi giá trị analogRead (0-1023) sang giá trị PWM (0-255)." },
+        { id: 50, q: "Chỉ số (index) của phần tử ĐẦU TIÊN trong một mảng (Array) là bao nhiêu?", opts: ["1", "0", "-1", "Tùy thuộc vào ngôn ngữ"], ans: "0", exp: "Trong C++ và Python, chỉ số của mảng bắt đầu từ 0. Phần tử đầu tiên là index 0." },
+        { id: 51, q: "Vòng lặp while khác for cơ bản ở điểm nào?", opts: ["while chạy nhanh hơn", "for dùng khi biết trước số lần lặp, while dùng khi lặp dựa trên điều kiện", "while không thể dừng lại", "for chỉ dùng cho số thực"], ans: "for dùng khi biết trước số lần lặp, while dùng khi lặp dựa trên điều kiện", exp: "for thích hợp khi biết rõ số lần lặp (ví dụ: 10 lần). while thích hợp khi lặp đến khi một điều kiện nào đó thay đổi (ví dụ: chờ nút nhấn)." },
+        { id: 52, q: "Cấu trúc try-except trong Python dùng để làm gì?", opts: ["Thử chạy code nhanh hơn", "Bắt và xử lý lỗi (Exception handling) giúp chương trình không bị crash", "Lặp lại code", "Khai báo biến"], ans: "Bắt và xử lý lỗi (Exception handling) giúp chương trình không bị crash", exp: "try-except giúp chương trình xử lý các tình huống lỗi một cách mượt mà thay vì dừng đột ngột." },
+        { id: 53, q: "Nếu cảm biến trả về dữ liệu bị nhiễu (lúc cao lúc thấp bất thường), ta thường dùng thuật toán cơ bản nào để lọc?", opts: ["Thuật toán sắp xếp", "Lấy Trung bình cộng của nhiều lần đọc liên tiếp (Moving Average)", "Thuật toán tìm kiếm", "Mã hóa dữ liệu"], ans: "Lấy Trung bình cộng của nhiều lần đọc liên tiếp (Moving Average)", exp: "Lấy trung bình cộng (Moving Average Filter) là cách đơn giản và hiệu quả nhất để làm mượt dữ liệu cảm biến bị nhiễu." },
+        { id: 54, q: "Edge Computing (Điện toán biên) là gì?", opts: ["Lưu trữ dữ liệu vĩnh viễn trên Cloud", "Xử lý dữ liệu ngay tại thiết bị hoặc gần thiết bị (ví dụ: Arduino tự tính toán)", "Gửi tất cả dữ liệu thô lên máy chủ trung tâm", "Công nghệ tính toán bằng ánh sáng"], ans: "Xử lý dữ liệu ngay tại thiết bị hoặc gần thiết bị (ví dụ: Arduino tự tính toán)", exp: "Edge Computing đưa khả năng tính toán đến gần nguồn dữ liệu (thiết bị biên), thay vì gửi hết lên Cloud." },
+        { id: 55, q: "Ưu điểm lớn nhất của Edge Computing là gì?", opts: ["Tăng tốc độ internet", "Giảm độ trễ (phản ứng tức thì), tiết kiệm băng thông và tăng tính riêng tư", "Giúp thiết bị chạy bằng năng lượng mặt trời", "Lưu trữ được nhiều dữ liệu hơn Cloud"], ans: "Giảm độ trễ (phản ứng tức thì), tiết kiệm băng thông và tăng tính riêng tư", exp: "Vì xử lý tại chỗ nên không cần chờ mạng, phản ứng nhanh (low latency), ít tốn băng thông và dữ liệu nhạy cảm không phải rời khỏi thiết bị." },
+        { id: 56, q: "Fog Computing (Điện toán sương mù) đóng vai trò gì?", opts: ["Thay thế hoàn toàn Cloud", "Là lớp trung gian giữa Edge (thiết bị) và Cloud, xử lý sơ bộ dữ liệu cục bộ", "Chỉ dùng để làm mát thiết bị", "Là một loại cảm biến"], ans: "Là lớp trung gian giữa Edge (thiết bị) và Cloud, xử lý sơ bộ dữ liệu cục bộ", exp: "Fog Computing nằm giữa Edge và Cloud (ví dụ: trên Gateway hoặc Router), gom và xử lý dữ liệu từ nhiều thiết bị Edge trước khi gửi lên Cloud." },
+        { id: 57, q: "PII (Personally Identifiable Information) là gì?", opts: ["Giao thức truyền thông IoT", "Thông tin định danh cá nhân (tên, CCCD, khuôn mặt...)", "Một loại cảm biến", "Phần mềm diệt virus"], ans: "Thông tin định danh cá nhân (tên, CCCD, khuôn mặt...)", exp: "PII là dữ liệu có thể dùng để xác định danh tính một người. Các thiết bị IoT thu thập PII cần được bảo mật nghiêm ngặt." },
+        { id: 58, q: "Điểm khác biệt LỚN NHẤT giữa Raspberry Pi và Arduino là gì?", opts: ["Arduino đắt hơn", "Raspberry Pi chạy được Hệ điều hành (Linux), Arduino chỉ chạy firmware", "Arduino có màn hình cảm ứng", "Raspberry Pi không lập trình được"], ans: "Raspberry Pi chạy được Hệ điều hành (Linux), Arduino chỉ chạy firmware", exp: "Raspberry Pi là một máy tính thu nhỏ chạy HĐH, trong khi Arduino là vi điều khiển chạy mã firmware trực tiếp trên phần cứng." },
+        { id: 59, q: "Để đọc dữ liệu từ cảm biến DHT11 trong Arduino, ta thường cần làm gì trước khi dùng?", opts: ["Không cần làm gì", "Cài đặt và khai báo thư viện DHT (ví dụ: #include <DHT.h>)", "Kết nối internet", "Khởi động lại máy tính"], ans: "Cài đặt và khai báo thư viện DHT (ví dụ: #include <DHT.h>)", exp: "Các cảm biến phức tạp như DHT11 cần thư viện hỗ trợ để giải mã tín hiệu, nên phải #include thư viện và khởi tạo đối tượng trước khi dùng." }
     ];
 
     // ==========================================
-    // LOGIC XỬ LÝ
+    // LOGIC XỬ LÝ & NÚT TRÁO ĐỔI
     // ==========================================
-    let currentMode = 'all'; // 'all' hoặc 'wrong'
+    let currentMode = 'all'; 
     let currentQuestionIndex = 0;
     let currentQuestionsList = [];
-    let wrongQuestionIds = JSON.parse(localStorage.getItem('iot102_wrong_ids')) || [];
+    let correctCount = 0;
+    let isShuffled = false; // Biến kiểm soát việc có tráo đổi hay không
+    let wrongQuestionIds = JSON.parse(localStorage.getItem('iot102_wrong_ids_v3')) || [];
 
-    // Cập nhật số lượng câu sai trên giao diện
+    // Hàm tráo đổi mảng (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        let shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    // Hàm Bật/Tắt chế độ tráo đổi
+    function toggleShuffle() {
+        isShuffled = !isShuffled;
+        const btn = document.getElementById('btn-shuffle');
+        
+        if (isShuffled) {
+            btn.innerText = "🔀 Tráo đổi: Bật";
+            btn.classList.add('shuffle-active');
+        } else {
+            btn.innerText = "🔀 Tráo đổi: Tắt";
+            btn.classList.remove('shuffle-active');
+        }
+        
+        // Tải lại danh sách câu hỏi theo chế độ hiện tại (có hoặc không có shuffle)
+        setMode(currentMode);
+    }
+
     function updateWrongCount() {
         document.getElementById('wrong-count').innerText = wrongQuestionIds.length;
         document.getElementById('clear-log-btn').style.display = wrongQuestionIds.length > 0 ? 'block' : 'none';
@@ -341,76 +310,89 @@
         document.getElementById('btn-wrong').className = mode === 'wrong' ? 'mode-btn active' : 'mode-btn';
         
         if (mode === 'all') {
-            currentQuestionsList = [...allQuestions];
+            currentQuestionsList = [...allQuestionsData];
         } else {
-            currentQuestionsList = allQuestions.filter(q => wrongQuestionIds.includes(q.id));
+            currentQuestionsList = allQuestionsData.filter(q => wrongQuestionIds.includes(q.id));
             if (currentQuestionsList.length === 0) {
-                alert("Tuyệt vời! Bạn chưa có câu sai nào, hoặc đã ôn tập hết rồi.");
+                alert("🎉 Tuyệt vời! Bạn chưa có câu sai nào, hoặc đã ôn tập hết rồi.");
                 setMode('all');
                 return;
             }
         }
+        
+        // CHỈ tráo đổi câu hỏi nếu nút "Tráo đổi" đang BẬT
+        if (isShuffled) {
+            currentQuestionsList = shuffleArray(currentQuestionsList);
+        }
+
         currentQuestionIndex = 0;
+        correctCount = 0;
+        document.getElementById('score-text').innerText = `Đúng: ${correctCount}`;
         loadQuestion();
     }
 
     function loadQuestion() {
-        const q = currentQuestionsList[currentQuestionIndex];
+        const originalQ = currentQuestionsList[currentQuestionIndex];
+        let q = JSON.parse(JSON.stringify(originalQ));
+
+        // CHỈ tráo đổi đáp án nếu nút "Tráo đổi" đang BẬT
+        if (isShuffled) {
+            let correctText = q.ans;
+            q.opts = shuffleArray(q.opts);
+            q.ansIndex = q.opts.indexOf(correctText);
+        } else {
+            // Nếu tắt tráo đổi, giữ nguyên thứ tự đáp án và tìm index gốc
+            q.ansIndex = q.opts.indexOf(q.ans);
+        }
+
         document.getElementById('progress-text').innerText = `Câu ${currentQuestionIndex + 1} / ${currentQuestionsList.length}`;
-        document.getElementById('question-text').innerText = q.question;
+        document.getElementById('question-text').innerText = q.q;
         document.getElementById('explanation-text').style.display = 'none';
         document.getElementById('next-btn').style.display = 'none';
 
         const optionsContainer = document.getElementById('options-container');
         optionsContainer.innerHTML = '';
 
-        q.options.forEach((opt, index) => {
+        q.opts.forEach((opt, index) => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
             btn.innerText = opt;
-            btn.onclick = () => checkAnswer(index, btn);
+            btn.onclick = () => checkAnswer(index, btn, q);
             optionsContainer.appendChild(btn);
         });
     }
 
-    function checkAnswer(selectedIndex, selectedBtn) {
-        const q = currentQuestionsList[currentQuestionIndex];
+    function checkAnswer(selectedIndex, selectedBtn, q) {
         const buttons = document.querySelectorAll('.option-btn');
-        
-        // Vô hiệu hóa tất cả nút để không click nhiều lần
         buttons.forEach(btn => btn.disabled = true);
 
-        if (selectedIndex === q.correct) {
-            // Chọn ĐÚNG
+        if (selectedIndex === q.ansIndex) {
             selectedBtn.classList.add('correct');
-            // Nếu đang ở chế độ ôn tập câu sai và làm đúng, xóa khỏi danh sách sai
+            correctCount++;
+            document.getElementById('score-text').innerText = `Đúng: ${correctCount}`;
+            
             if (currentMode === 'wrong') {
                 wrongQuestionIds = wrongQuestionIds.filter(id => id !== q.id);
-                localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+                localStorage.setItem('iot102_wrong_ids_v3', JSON.stringify(wrongQuestionIds));
                 updateWrongCount();
             }
         } else {
-            // Chọn SAI
             selectedBtn.classList.add('wrong');
-            buttons[q.correct].classList.add('correct'); // Hiện xanh câu đúng
+            buttons[q.ansIndex].classList.add('correct');
             
-            // Thêm vào danh sách câu sai nếu chưa có
             if (!wrongQuestionIds.includes(q.id)) {
                 wrongQuestionIds.push(q.id);
-                localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+                localStorage.setItem('iot102_wrong_ids_v3', JSON.stringify(wrongQuestionIds));
                 updateWrongCount();
             }
         }
 
-        // Hiện giải thích và nút Next
-        document.getElementById('explanation-text').innerText = "💡 Giải thích: " + q.explanation;
+        document.getElementById('explanation-text').innerText = "💡 Giải thích: " + q.exp;
         document.getElementById('explanation-text').style.display = 'block';
         document.getElementById('next-btn').style.display = 'block';
 
-        // Tự động chuyển câu sau 1.5 giây nếu chọn đúng, 2.5 giây nếu chọn sai (để kịp đọc giải thích)
-        const delay = selectedIndex === q.correct ? 1200 : 2500;
+        const delay = selectedIndex === q.ansIndex ? 1200 : 2500;
         setTimeout(() => {
-            // Chỉ tự động next nếu người dùng chưa bấm nút next thủ công
             if (document.getElementById('next-btn').style.display === 'block') {
                 nextQuestion();
             }
@@ -422,12 +404,12 @@
         if (currentQuestionIndex < currentQuestionsList.length) {
             loadQuestion();
         } else {
-            // Hết câu hỏi
             document.getElementById('quiz-container').innerHTML = `
                 <div class="empty-state">
                     <h2>🎉 Hoàn thành!</h2>
-                    <p>Bạn đã hoàn thành phần luyện tập này.</p>
-                    <button class="mode-btn active" onclick="location.reload()" style="margin-top: 20px;">Làm lại từ đầu</button>
+                    <p>Bạn đã hoàn thành ${currentMode === 'all' ? 'toàn bộ 59 câu' : 'phần ôn tập câu sai'}.</p>
+                    <p>Số câu trả lời đúng trong lượt này: <strong>${correctCount}</strong></p>
+                    <button class="mode-btn active" onclick="location.reload()" style="margin-top: 20px; font-size: 16px; padding: 12px 24px;">Làm lại từ đầu</button>
                 </div>
             `;
         }
@@ -436,9 +418,9 @@
     function clearWrongLog() {
         if (confirm("Bạn có chắc muốn xóa toàn bộ lịch sử câu sai không?")) {
             wrongQuestionIds = [];
-            localStorage.setItem('iot102_wrong_ids', JSON.stringify(wrongQuestionIds));
+            localStorage.setItem('iot102_wrong_ids_v3', JSON.stringify(wrongQuestionIds));
             updateWrongCount();
-            alert("Đã xóa lịch sử!");
+            alert("Đã xóa lịch sử câu sai!");
             setMode('all');
         }
     }

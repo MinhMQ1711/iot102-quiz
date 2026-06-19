@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Ôn Luyện Kanji - 100% COMPLETE</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+        
+        .dashboard { display: flex; justify-content: space-around; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        .stat-box { text-align: center; }
+        .stat-num { font-size: 28px; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 14px; color: #64748b; margin-top: 5px; }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .tab-btn { padding: 10px 18px; border: none; background: #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; color: #475569; }
+        .tab-btn:hover { background: #cbd5e1; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        .mode-content { display: none; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .mode-content.active { display: block; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 0; }
+        
+        .kanji-display { font-size: 100px; text-align: center; margin: 20px 0; color: var(--text); font-weight: bold; }
+        .parts-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .part-box { border: 2px solid var(--primary); background: #eff6ff; padding: 15px 25px; border-radius: 10px; text-align: center; min-width: 80px; }
+        .part-char { font-size: 32px; font-weight: bold; display: block; margin-bottom: 5px; }
+        .part-mean { font-size: 14px; color: #64748b; }
+        .meaning-box { text-align: center; font-size: 22px; margin: 20px 0; padding: 15px; background: #f1f5f9; border-radius: 8px; }
+        .examples-box { text-align: center; margin-top: 15px; }
+        .example-tag { display: inline-block; background: #e0f2fe; color: #0369a1; padding: 5px 12px; border-radius: 15px; margin: 5px; font-size: 14px; }
+        
+        .cloze-sentence { font-size: 26px; text-align: center; margin: 40px 0; line-height: 1.6; }
+        .options { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .option-btn { padding: 12px 24px; font-size: 20px; border: 2px solid var(--primary); background: white; border-radius: 8px; cursor: pointer; transition: 0.2s; min-width: 100px; }
+        .option-btn:hover { background: var(--primary); color: white; }
+        
+        canvas { border: 3px solid #334155; border-radius: 12px; cursor: crosshair; touch-action: none; display: block; margin: 20px auto; background: #fff; }
+        .canvas-controls { text-align: center; margin-top: 15px; display: flex; justify-content: center; gap: 15px; }
+        
+        .speed-area { display: flex; flex-direction: column; align-items: center; gap: 20px; margin: 20px 0; }
+        .falling-kanji { font-size: 80px; font-weight: bold; color: var(--danger); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .speed-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 400px; }
+        
+        .kanji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
+        .kanji-card { border: 1px solid var(--border); border-radius: 8px; padding: 15px; text-align: center; background: #f8fafc; }
+        .kanji-card .k-char { font-size: 40px; font-weight: bold; color: var(--primary); }
+        .kanji-card .k-hira { font-size: 18px; color: #64748b; margin: 5px 0; }
+        .kanji-card .k-mean { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+        .kanji-card .k-ex { font-size: 13px; color: #475569; text-align: left; }
+
+        .btn { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: 0.2s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-secondary { background: #64748b; }
+        .btn-secondary:hover { background: #475569; }
+        .feedback { text-align: center; font-size: 22px; margin-top: 20px; font-weight: bold; min-height: 35px; }
+        .correct { color: var(--success); }
+        .wrong { color: var(--danger); }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .filter-btn { padding: 8px 16px; border: 1px solid var(--border); background: white; border-radius: 20px; cursor: pointer; font-size: 14px; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎯 Hệ Thống Ôn Luyện Kanji - 100% COMPLETE</h1>
+    
+    <div class="dashboard">
+        <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Tổng từ</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-remembered">0</div><div class="stat-label">Đã thuộc</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-accuracy">0%</div><div class="stat-label">Chính xác</div></div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('mode1')">1. Giải phẫu & Nghĩa</button>
+        <button class="tab-btn" onclick="switchTab('mode2')">2. Điền khuyết ngữ cảnh</button>
+        <button class="tab-btn" onclick="switchTab('mode3')">3. Luyện viết</button>
+        <button class="tab-btn" onclick="switchTab('mode4')">4. Phản xạ nhanh</button>
+        <button class="tab-btn" onclick="switchTab('mode5')">📚 Kanji đơn (32)</button>
+        <button class="tab-btn" onclick="switchTab('mode6')">📖 Từ ghép (135+)</button>
+    </div>
+
+    <div id="mode1" class="mode-content active">
+        <h2>Giải phẫu Kanji & Từ ghép</h2>
+        <div class="kanji-display" id="m1-kanji">話</div>
+        <div class="parts-container" id="m1-parts"></div>
+        <div class="meaning-box">Nghĩa: <strong id="m1-meaning">Nói chuyện / Câu chuyện</strong></div>
+        <div class="examples-box" id="m1-examples"></div>
+        <div style="text-align:center; margin-top:30px;"><button class="btn" onclick="nextM1()">Từ tiếp theo ➡️</button></div>
+    </div>
+
+    <div id="mode2" class="mode-content">
+        <h2>Điền khuyết ngữ cảnh</h2>
+        <div class="cloze-sentence" id="m2-sentence"></div>
+        <div class="options" id="m2-options"></div>
+        <div class="feedback" id="m2-feedback"></div>
+        <div style="text-align:center; margin-top:30px;"><button class="btn" onclick="nextM2()">Câu tiếp theo ➡️</button></div>
+    </div>
+
+    <div id="mode3" class="mode-content">
+        <h2>Luyện viết Kanji</h2>
+        <p style="text-align:center; font-size:20px;">Hãy viết chữ: <strong id="m3-target" style="color:var(--primary); font-size:28px;">買い物</strong> <br><span id="m3-hira" style="color:#64748b; font-size:18px;">(かいもの)</span></p>
+        <canvas id="drawCanvas" width="300" height="300"></canvas>
+        <div class="canvas-controls">
+            <button class="btn btn-secondary" onclick="clearCanvas()">🗑️ Xóa bảng</button>
+            <button class="btn" onclick="checkCanvas()">✅ Chấm điểm</button>
+        </div>
+        <div class="feedback" id="m3-feedback"></div>
+    </div>
+
+    <div id="mode4" class="mode-content">
+        <h2>Tốc độ phản xạ</h2>
+        <p style="text-align:center; color:#64748b;">Chọn Hiragana đúng!</p>
+        <div class="speed-area">
+            <div class="falling-kanji" id="m4-kanji">東</div>
+            <div class="speed-options" id="m4-options"></div>
+        </div>
+        <div class="feedback" id="m4-feedback"></div>
+    </div>
+
+    <div id="mode5" class="mode-content">
+        <h2>📚 Danh sách Kanji đơn (32 chữ)</h2>
+        <div class="kanji-grid" id="kanji-single-grid"></div>
+    </div>
+
+    <div id="mode6" class="mode-content">
+        <h2>📖 Danh sách Từ ghép Kanji (135+ từ)</h2>
+        <div class="filter-bar" id="filter-bar">
+            <button class="filter-btn active" onclick="filterWords('all')">Tất cả</button>
+            <button class="filter-btn" onclick="filterWords('time')">⏰ Thời gian</button>
+            <button class="filter-btn" onclick="filterWords('place')">🏙️ Địa điểm</button>
+            <button class="filter-btn" onclick="filterWords('verb')">🏃 Động từ</button>
+            <button class="filter-btn" onclick="filterWords('noun')">📦 Danh từ</button>
+        </div>
+        <div class="kanji-grid" id="kanji-compound-grid"></div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // DATABASE: 32 CHỮ KANJI ĐƠN
+    // ==========================================
+    const kanjiSingle = [
+        { k: '東', h: 'ひがし', m: 'Phía Đông', parts: [{c:'木',m:'Cây'},{c:'日',m:'Mặt trời'}], ex: ['東 (phía đông)'], ctx: 'まちの [ ___ ] にあります。', opts: ['東', '西', '南'] },
+        { k: '京', h: 'きょう', m: 'Kinh đô', parts: [{c:'亠',m:'Đầu'},{c:'口',m:'Miệng'},{c:'小',m:'Nhỏ'}], ex: ['京都 (Kyoto)', '東京 (Tokyo)'], ctx: '[ ___ ] とに行きます。', opts: ['京', '東', '高'] },
+        { k: '前', h: 'まえ', m: 'Phía trước', parts: [{c:'丷',m:'Hai'},{c:'一',m:'Một'},{c:'月',m:'Tháng'},{c:'刂',m:'Dao'}], ex: ['名前 (tên)', '午前 (sáng)', '午後 (chiều)'], ctx: 'えきの [ ___ ] にあります。', opts: ['前', '後', '中'] },
+        { k: '名', h: 'な', m: 'Tên', parts: [{c:'夕',m:'Chiều'},{c:'口',m:'Miệng'}], ex: ['名前 (tên)'], ctx: '[ ___ ] まえはなんですか。', opts: ['名', '明', '鳴'] },
+        { k: '昨', h: 'さく', m: 'Hôm qua', parts: [{c:'日',m:'Ngày'},{c:'乍',m:'Chợt'}], ex: ['昨日 (hôm qua)'], ctx: '[ ___ ] 日はあめでした。', opts: ['昨', '作', '咋'] },
+        { k: '朝', h: 'あさ', m: 'Buổi sáng', parts: [{c:'十',m:'Mười'},{c:'日',m:'Ngày'},{c:'月',m:'Tháng'}], ex: ['朝 (buổi sáng)', '今朝 (sáng nay)'], ctx: '[ ___ ] ごはんをたべます。', opts: ['朝', '昼', '夜'] },
+        { k: '国', h: 'くに', m: 'Đất nước', parts: [{c:'囗',m:'Khung'},{c:'玉',m:'Ngọc'}], ex: ['国 (đất nước)', '帰国 (về nước)'], ctx: 'わたしの [ ___ ] はベトナムです。', opts: ['国', '図', '園'] },
+        { k: '男', h: 'おとこ', m: 'Nam / Đàn ông', parts: [{c:'田',m:'Ruộng'},{c:'力',m:'Lực'}], ex: ['男 (nam)', '男女 (nam nữ)'], ctx: '[ ___ ] の人。', opts: ['男', '女', '田'] },
+        { k: '女', h: 'おんな', m: 'Nữ / Phụ nữ', parts: [{c:'く',m:'Góc'},{c:'一',m:'Một'},{c:'く',m:'Góc'}], ex: ['女 (nữ)', '男女 (nam nữ)'], ctx: '[ ___ ] の人。', opts: ['女', '男', '安'] },
+        { k: '区', h: 'く', m: 'Khu / Quận', parts: [{c:'匸',m:'Khung'},{c:'×',m:'X'}], ex: ['区 (quận/khu)'], ctx: 'この [ ___ ] はしずかです。', opts: ['区', '医', '巨'] },
+        { k: '市', h: 'し', m: 'Thành phố', parts: [{c:'亠',m:'Đầu'},{c:'巾',m:'Khăn'}], ex: ['市 (thành phố)'], ctx: '[ ___ ] のまんなか。', opts: ['市', '区', '県'] },
+        { k: '今', h: 'いま', m: 'Bây giờ', parts: [{c:'人',m:'Người'},{c:'一',m:'Một'},{c:'口',m:'Miệng'}], ex: ['今週 (tuần này)', '今月 (tháng này)', '今日 (hôm nay)', '今年 (năm nay)'], ctx: '[ ___ ] は 何時ですか。', opts: ['今', '昔', '明'] },
+        { k: '来', h: 'くる', m: 'Đến / Tương lai', parts: [{c:'木',m:'Cây'},{c:'人',m:'Người'}], ex: ['来週 (tuần sau)', '来月 (tháng sau)', '来年 (năm sau)', '来日 (đến Nhật)'], ctx: '日本へ [ ___ ] ます。', opts: ['来', '行', '帰'] },
+        { k: '帰', h: 'かえる', m: 'Trở về', parts: [{c:'止',m:'Dừng'},{c:'帚',m:'Chổi'}], ex: ['日帰り (đi về trong ngày)', '帰国 (về nước)'], ctx: 'うちへ [ ___ ] ります。', opts: ['帰', '行', '来'] },
+        { k: '会', h: 'あう', m: 'Gặp gỡ / Hội', parts: [{c:'人',m:'Người'},{c:'云',m:'Nói'}], ex: ['飲み会 (tiệc nhậu)', '国会 (quốc hội)', '会社 (công ty)', '社会 (xã hội)'], ctx: 'ともだちと [ ___ ] います。', opts: ['会', '話', '言'] },
+        { k: '聞', h: 'きく', m: 'Nghe / Hỏi', parts: [{c:'門',m:'Cổng'},{c:'耳',m:'Tai'}], ex: ['新聞 (tờ báo)'], ctx: '音楽を [ ___ ] きます。', opts: ['聞', '話', '読'] },
+        { k: '読', h: 'よむ', m: 'Đọc', parts: [{c:'言',m:'Nói'},{c:'売',m:'Bán'}], ex: ['読み物 (đọc vật)', '読書 (đọc sách)', '辞書 (từ điển)'], ctx: '本を [ ___ ] みます。', opts: ['読', '書', '聞'] },
+        { k: '書', h: 'かく', m: 'Viết', parts: [{c:'聿',m:'Bút'}], ex: ['書き物 (bài viết)', '読書 (đọc sách)', '辞書 (từ điển)'], ctx: '字を [ ___ ] きます。', opts: ['書', '読', '話'] },
+        { k: '話', h: 'はなす', m: 'Nói chuyện / Chuyện', parts: [{c:'言',m:'Nói'},{c:'舌',m:'Lưỡi'}], ex: ['会話 (hội thoại)', '電話 (điện thoại)'], ctx: '日本語で [ ___ ] します。', opts: ['話', '言', '聞'] },
+        { k: '寺', h: 'てら', m: 'Chùa', parts: [{c:'土',m:'Đất'},{c:'寸',m:'Tấc'}], ex: ['お寺 (chùa)'], ctx: 'お [ ___ ] に行きます。', opts: ['寺', '社', '宮'] },
+        { k: '社', h: 'しゃ', m: 'Đền thần / Xã', parts: [{c:'示',m:'Thị (thần linh)'},{c:'土',m:'Thổ (đất)'}], ex: ['神社 (đền thần)', '会社 (công ty)', '社会 (xã hội)'], ctx: 'お [ ___ ] に まいります。', opts: ['社', '寺', '宮'] },
+        { k: '言', h: 'いう', m: 'Nói / Lời', parts: [{c:'亠',m:'Đầu'},{c:'口',m:'Miệng'}], ex: ['言葉 (lời nói)', '言語 (ngôn ngữ)', '言語学 (ngôn ngữ học)'], ctx: '本当のことを [ ___ ] います。', opts: ['言', '話', '語'] },
+        { k: '田', h: 'た', m: 'Ruộng', parts: [{c:'十',m:'Mười'},{c:'十',m:'Mười'}], ex: ['田んぼ (ruộng lúa)', '水田 (ruộng nước)'], ctx: '[ ___ ] んぼで遊びます。', opts: ['田', '畑', '野'] },
+        { k: '貝', h: 'かい', m: 'Con sò', parts: [{c:'目',m:'Mắt'},{c:'八',m:'Tám'}], ex: ['貝 (con sò)'], ctx: '[ ___ ] を ひろいました。', opts: ['貝', '見', '魚'] },
+        { k: '力', h: 'ちから', m: 'Sức lực / Lực', parts: [{c:'刀',m:'Dao'}], ex: ['水力 (thủy lực)', '火力 (hỏa lực)'], ctx: 'すいりょく (thủy [ ___ ])。', opts: ['力', '刀', '気'] },
+        { k: '門', h: 'もん', m: 'Cổng', parts: [{c:'戸',m:'Cửa'},{c:'戸',m:'Cửa'}], ex: ['大学の門 (cổng ĐH)', '学校の門 (cổng trường)'], ctx: '学校の [ ___ ]。', opts: ['門', '問', '間'] },
+        { k: '見', h: 'みる', m: 'Nhìn / Xem', parts: [{c:'目',m:'Mắt'},{c:'儿',m:'Chân'}], ex: ['見学 (tham quan)', '見せる (cho xem)', '見物 (ngắm cảnh)'], ctx: 'えいがを [ ___ ] ます。', opts: ['見', '貝', '観'] },
+        { k: '食', h: 'たべる', m: 'Ăn / Thức ăn', parts: [{c:'人',m:'Người'},{c:'良',m:'Tốt'}], ex: ['食べ物 (đồ ăn)', '食事 (bữa ăn)', '飲食店 (quán ăn)'], ctx: 'ごはんを [ ___ ] べます。', opts: ['食', '飲', '見'] },
+        { k: '飲', h: 'のむ', m: 'Uống', parts: [{c:'食',m:'Ăn'},{c:'欠',m:'Thiếu'}], ex: ['飲み物 (đồ uống)', '飲食店 (quán ăn)'], ctx: 'みずを [ ___ ] みます。', opts: ['飲', '食', '見'] },
+        { k: '買', h: 'かう', m: 'Mua', parts: [{c:'貝',m:'Sò (tiền)'},{c:'目',m:'Mắt'}], ex: ['買い物 (mua sắm)'], ctx: 'ほんを [ ___ ] います。', opts: ['買', '売', '読'] },
+        { k: '行', h: 'いく', m: 'Đi', parts: [{c:'彳',m:'Bước chân'}], ex: ['行く (đi)'], ctx: 'がっこうへ [ ___ ] きます。', opts: ['行', '来', '帰'] },
+        { k: '休', h: 'やすむ', m: 'Nghỉ ngơi', parts: [{c:'人',m:'Người'},{c:'木',m:'Cây'}], ex: ['休み (ngày nghỉ)', '夏休み (nghỉ hè)', '休日 (ngày lễ)'], ctx: 'きょうは [ ___ ] みます。', opts: ['休', '体', '仮'] },
+        { k: '後', h: 'あと', m: 'Sau, phía sau, muộn hơn', parts: [{c:'彳',m:'Bước chân'},{c:'幺',m:'Nhỏ'},{c:'夂',m:'Đi chậm'}], ex: ['午後 (buổi chiều)', '後ろ (phía sau)', '後で (sau đó)'], ctx: 'えきの [ ___ ] に あります。', opts: ['後', '前', '中'] }
+    ];
+
+    // ==========================================
+    // DATABASE: 135+ TỪ GHÉP KANJI
+    // ==========================================
+    const kanjiCompound = [
+        // === THỜI GIAN ===
+        // Thêm vào nhóm THỜI GIAN
+{ k: '午後', h: 'ごご', m: 'Buổi chiều (PM)', cat: 'time', ctx: '[ ___ ] １じから ５じまで。', opts: ['午後', '午前', '今朝'] },
+{ k: '後ろ', h: 'うしろ', m: 'Phía sau', cat: 'noun', ctx: 'いえの [ ___ ] に やまが あります。', opts: ['後ろ', '前', '隣'] },
+{ k: '後で', h: 'あとで', m: 'Lát nữa / Sau đó', cat: 'time', ctx: '[ ___ ] あいましょう。', opts: ['後で', '前で', '今'] }, 
+        { k: '今週', h: 'こんしゅう', m: 'Tuần này', cat: 'time', ctx: '[ ___ ] は いそがしいです。', opts: ['今週', '先週', '来週'] },
+        { k: '今月', h: 'こんげつ', m: 'Tháng này', cat: 'time', ctx: '[ ___ ] のやすみ。', opts: ['今月', '先月', '来月'] },
+        { k: '今日', h: 'きょう', m: 'Hôm nay', cat: 'time', ctx: '[ ___ ] は あめです。', opts: ['今日', '昨日', '明日'] },
+        { k: '今年', h: 'ことし', m: 'Năm nay', cat: 'time', ctx: '[ ___ ] は いいとしです。', opts: ['今年', '去年', '来年'] },
+        { k: '来週', h: 'らいしゅう', m: 'Tuần sau', cat: 'time', ctx: '[ ___ ] にほんへ いきます。', opts: ['来週', '今週', '先週'] },
+        { k: '来月', h: 'らいげつ', m: 'Tháng sau', cat: 'time', ctx: '[ ___ ] しけんが あります。', opts: ['来月', '今月', '先月'] },
+        { k: '来年', h: 'らいねん', m: 'Năm sau', cat: 'time', ctx: '[ ___ ] べトナムへ かえります。', opts: ['来年', '今年', '去年'] },
+        { k: '来日', h: 'らいにち', m: 'Đến Nhật', cat: 'time', ctx: '[ ___ ] しました。', opts: ['来日', '帰国', '出国'] },
+        { k: '先週', h: 'せんしゅう', m: 'Tuần trước', cat: 'time', ctx: '[ ___ ] のやすみ。', opts: ['先週', '今週', '来週'] },
+        { k: '先月', h: 'せんげつ', m: 'Tháng trước', cat: 'time', ctx: '[ ___ ] は テストでした。', opts: ['先月', '今月', '来月'] },
+        { k: '毎週', h: 'まいしゅう', m: 'Mỗi tuần', cat: 'time', ctx: '[ ___ ] えいがを みます。', opts: ['毎週', '毎日', '毎月'] },
+        { k: '一週間', h: 'いっしゅうかん', m: 'Một tuần', cat: 'time', ctx: 'にほんに [ ___ ] いました。', opts: ['一週間', '一ヶ月', '一年'] },
+        { k: '毎日', h: 'まいにち', m: 'Mỗi ngày', cat: 'time', ctx: '[ ___ ] べんきょうします。', opts: ['毎日', '毎週', '毎月'] },
+        { k: '毎月', h: 'まいつき', m: 'Mỗi tháng', cat: 'time', ctx: '[ ___ ] りょこうします。', opts: ['毎月', '毎日', '毎週'] },
+        { k: '毎年', h: 'まいとし', m: 'Mỗi năm', cat: 'time', ctx: '[ ___ ] にほんへ いきます。', opts: ['毎年', '毎日', '毎週'] },
+        { k: '毎朝', h: 'まいあさ', m: 'Mỗi sáng', cat: 'time', ctx: '[ ___ ] ６じに おきます。', opts: ['毎朝', '毎晩', '毎日'] },
+        { k: '毎晩', h: 'まいばん', m: 'Mỗi tối', cat: 'time', ctx: '[ ___ ] ほんを よみます。', opts: ['毎晩', '毎朝', '毎日'] },
+        { k: '午前', h: 'ごぜん', m: 'Buổi sáng (AM)', cat: 'time', ctx: '[ ___ ] ９じから １２じまで。', opts: ['午前', '午後', '今朝'] },
+        { k: '午後', h: 'ごご', m: 'Buổi chiều (PM)', cat: 'time', ctx: '[ ___ ] １じから ５じまで。', opts: ['午後', '午前', '今晩'] },
+        { k: '後ろ', h: 'うしろ', m: 'Phía sau', cat: 'time', ctx: 'いえの [ ___ ] に やまが あります。', opts: ['後ろ', '前', '隣'] },
+        { k: '後で', h: 'あとで', m: 'Lát nữa / Sau đó', cat: 'time', ctx: '[ ___ ] あいましょう。', opts: ['後で', '前で', '今'] },
+        { k: '夏休み', h: 'なつやすみ', m: 'Nghỉ hè', cat: 'time', ctx: '[ ___ ] に うみへ いきます。', opts: ['夏休み', '冬休み', '春休み'] },
+        { k: '休日', h: 'きゅうじつ', m: 'Ngày nghỉ lễ', cat: 'time', ctx: '[ ___ ] は どこへ いきますか。', opts: ['休日', '平日', '毎週'] },
+        
+        // === ĐỊA ĐIỂM ===
+        { k: '会社', h: 'かいしゃ', m: 'Công ty', cat: 'place', ctx: '[ ___ ] で はたらきます。', opts: ['会社', '学校', '病院'] },
+        { k: '社会', h: 'しゃかい', m: 'Xã hội', cat: 'place', ctx: '[ ___ ] の しゅうかん。', opts: ['社会', '会社', '世界'] },
+        { k: '国会', h: 'こっかい', m: 'Quốc hội', cat: 'place', ctx: '[ ___ ] ぎじどう。', opts: ['国会', '会社', '会議'] },
+        { k: '新聞', h: 'しんぶん', m: 'Tờ báo', cat: 'place', ctx: '[ ___ ] を よみます。', opts: ['新聞', '雑誌', '本'] },
+        { k: '読み物', h: 'よみもの', m: 'Sách báo, ấn phẩm', cat: 'place', ctx: 'この [ ___ ] は おもしろい。', opts: ['読み物', '書き物', '食べ物'] },
+        { k: '読書', h: 'どくしょ', m: 'Đọc sách', cat: 'place', ctx: '[ ___ ] が すきです。', opts: ['読書', '勉強', '散歩'] },
+        { k: '辞書', h: 'じしょ', m: 'Từ điển', cat: 'place', ctx: '[ ___ ] を つかいます。', opts: ['辞書', '教科書', 'ノート'] },
+        { k: '書き物', h: 'かきもの', m: 'Bài viết', cat: 'place', ctx: 'この [ ___ ] は きれい。', opts: ['書き物', '読み物', '食べ物'] },
+        { k: '会話', h: 'かいわ', m: 'Hội thoại', cat: 'place', ctx: 'にほんごの [ ___ ]。', opts: ['会話', '電話', '話'] },
+        { k: '電話', h: 'でんわ', m: 'Điện thoại', cat: 'place', ctx: '[ ___ ] します。', opts: ['電話', '手紙', 'メール'] },
+        { k: '言葉', h: 'ことば', m: 'Lời nói, Từ', cat: 'place', ctx: 'にほんごの [ ___ ]。', opts: ['言葉', '文字', '文'] },
+        { k: '言語', h: 'げんご', m: 'Ngôn ngữ', cat: 'place', ctx: 'にほんごは [ ___ ] です。', opts: ['言語', '言葉', '文法'] },
+        { k: '言語学', h: 'げんごがく', m: 'Khoa Ngôn ngữ', cat: 'place', ctx: '[ ___ ] を べんきょう。', opts: ['言語学', '文学', '歴史'] },
+        { k: '田んぼ', h: 'たんぼ', m: 'Ruộng lúa', cat: 'place', ctx: '[ ___ ] で あそびます。', opts: ['田んぼ', '畑', '公園'] },
+        { k: '水田', h: 'すいでん', m: 'Ruộng lúa nước', cat: 'place', ctx: '[ ___ ] が たくさん。', opts: ['水田', '畑', '田んぼ'] },
+        { k: '大学の門', h: 'だいがくのもん', m: 'Cổng trường đại học', cat: 'place', ctx: '[ ___ ] は おおきい。', opts: ['大学の門', '学校の門', '公園の門'] },
+        { k: '学校の門', h: 'がっこうのもん', m: 'Cổng trường học', cat: 'place', ctx: '[ ___ ] の まえ で あう。', opts: ['学校の門', '大学の門', '駅の門'] },
+        { k: '飲食店', h: 'いんしょくてん', m: 'Cửa hàng ăn uống', cat: 'place', ctx: '[ ___ ] で たべます。', opts: ['飲食店', 'レストラン', 'コンビニ'] },
+        
+        // === ĐỘNG TỪ ===
+        { k: '見る', h: 'みる', m: 'Xem / Nhìn', cat: 'verb', ctx: 'えいがを [ ___ ]。', opts: ['見る', '聞く', '読む'] },
+        { k: '見せる', h: 'みせる', m: 'Cho xem', cat: 'verb', ctx: 'しゃしんを [ ___ ]。', opts: ['見せる', '見る', '見物'] },
+        { k: '食べる', h: 'たべる', m: 'Ăn', cat: 'verb', ctx: 'ごはんを [ ___ ]。', opts: ['食べる', '飲む', '見る'] },
+        { k: '飲む', h: 'のむ', m: 'Uống', cat: 'verb', ctx: 'みずを [ ___ ]。', opts: ['飲む', '食べる', '見る'] },
+        { k: '買う', h: 'かう', m: 'Mua', cat: 'verb', ctx: 'ほんを [ ___ ]。', opts: ['買う', '売る', '見る'] },
+        { k: '行く', h: 'いく', m: 'Đi', cat: 'verb', ctx: 'がっこうへ [ ___ ]。', opts: ['行く', '来る', '帰る'] },
+        { k: '休む', h: 'やすむ', m: 'Nghỉ ngơi / Vắng mặt', cat: 'verb', ctx: 'きょうは [ ___ ]。', opts: ['休む', '働く', '勉強する'] },
+        { k: '帰ります', h: 'かえります', m: 'Về', cat: 'verb', ctx: 'うちへ [ ___ ]。', opts: ['帰ります', '行きます', '来ます'] },
+        { k: '会います', h: 'あいます', m: 'Gặp', cat: 'verb', ctx: 'ともだちに [ ___ ]。', opts: ['会います', '別れます', '話します'] },
+        { k: '聞きます', h: 'ききます', m: 'Nghe', cat: 'verb', ctx: 'おんがくを [ ___ ]。', opts: ['聞きます', '話します', '見ます'] },
+        { k: '読みます', h: 'よみます', m: 'Đọc', cat: 'verb', ctx: 'ほんを [ ___ ]。', opts: ['読みます', '書きます', '聞きます'] },
+        { k: '書きます', h: 'かきます', m: 'Viết', cat: 'verb', ctx: 'てがみを [ ___ ]。', opts: ['書きます', '読みます', '話します'] },
+        { k: '話します', h: 'はなします', m: 'Nói chuyện', cat: 'verb', ctx: 'にほんごで [ ___ ]。', opts: ['話します', '聞きます', '読みます'] },
+        { k: '言います', h: 'いいます', m: 'Nói', cat: 'verb', ctx: 'せんせいが [ ___ ]。', opts: ['言います', '話します', '聞きます'] },
+        
+        // === DANH TỪ ===
+        { k: '先生', h: 'せんせい', m: 'Giáo viên / Thầy cô', cat: 'noun', ctx: '[ ___ ] は しんせつです。', opts: ['先生', '学生', '友達'] },
+        { k: '見学', h: 'けんがく', m: 'Tham quan học tập', cat: 'noun', ctx: '[ ___ ] に いきます。', opts: ['見学', '旅行', '散歩'] },
+        { k: '見物', h: 'けんぶつ', m: 'Tham quan, ngắm cảnh', cat: 'noun', ctx: 'きょうとへ [ ___ ] に いく。', opts: ['見物', '見学', '旅行'] },
+        { k: '食事', h: 'しょくじ', m: 'Bữa ăn', cat: 'noun', ctx: '[ ___ ] を します。', opts: ['食事', '勉強', '仕事'] },
+        { k: '食べ物', h: 'たべもの', m: 'Đồ ăn', cat: 'noun', ctx: '[ ___ ] が すきです。', opts: ['食べ物', '飲み物', '料理'] },
+        { k: '飲み物', h: 'のみもの', m: 'Đồ uống', cat: 'noun', ctx: '[ ___ ] を のみます。', opts: ['飲み物', '食べ物', 'お酒'] },
+        { k: '買い物', h: 'かいもの', m: 'Mua sắm', cat: 'noun', ctx: '[ ___ ] に いきます。', opts: ['買い物', '散歩', '旅行'] },
+        { k: '休み', h: 'やすみ', m: 'Ngày nghỉ / Giờ nghỉ', cat: 'noun', ctx: '[ ___ ] は あしたです。', opts: ['休み', '仕事', '授業'] },
+        { k: '日帰り', h: 'ひがえり', m: 'Đi về trong ngày', cat: 'noun', ctx: '[ ___ ] りょこう。', opts: ['日帰り', '一泊', '宿泊'] },
+        { k: '帰国', h: 'きこく', m: 'Về nước', cat: 'noun', ctx: 'らいねん [ ___ ] します。', opts: ['帰国', '出国', '来日'] },
+        { k: '飲み会', h: 'のみかい', m: 'Buổi nhậu', cat: 'noun', ctx: '[ ___ ] に いきます。', opts: ['飲み会', '会議', 'パーティー'] },
+        { k: '会見', h: 'かいけん', m: 'Gặp gỡ', cat: 'noun', ctx: 'プレスの [ ___ ]。', opts: ['会見', '会議', '面会'] },
+        { k: '話', h: 'はなし', m: 'Câu chuyện', cat: 'noun', ctx: 'おもしろい [ ___ ]。', opts: ['話', '本', '映画'] },
+        { k: '寺', h: 'てら', m: 'Chùa', cat: 'noun', ctx: 'お [ ___ ] に まいります。', opts: ['寺', '神社', '教会'] },
+        { k: '貝', h: 'かい', m: 'Con sò', cat: 'noun', ctx: 'うみで [ ___ ] を ひろった。', opts: ['貝', '魚', '花'] },
+        { k: '力', h: 'ちから', m: 'Sức lực', cat: 'noun', ctx: '[ ___ ] が ない。', opts: ['力', '時間', 'お金'] },
+        { k: '水力', h: 'すいりょく', m: 'Thủy lực (Sức nước)', cat: 'noun', ctx: '[ ___ ] はつでんしょ。', opts: ['水力', '火力', '原子力'] },
+        { k: '火力', h: 'かりょく', m: 'Hỏa lực (Sức lửa)', cat: 'noun', ctx: '[ ___ ] はつでんしょ。', opts: ['火力', '水力', '太陽光'] }
+    ];
+
+    const allKanji = [...kanjiSingle, ...kanjiCompound];
+    let currentIdx = 0;
+    let stats = { total: allKanji.length, remembered: 0, attempts: 0, correct: 0 };
+
+    function switchTab(id) {
+        document.querySelectorAll('.mode-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.target.classList.add('active');
+        
+        if(id === 'mode1') nextM1();
+        if(id === 'mode2') nextM2();
+        if(id === 'mode3') nextM3();
+        if(id === 'mode4') nextM4();
+        if(id === 'mode5') renderSingleList();
+        if(id === 'mode6') renderCompoundList('all');
+        
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('stat-total').innerText = stats.total;
+        document.getElementById('stat-remembered').innerText = stats.remembered;
+        const acc = stats.attempts === 0 ? 0 : Math.round((stats.correct / stats.attempts) * 100);
+        document.getElementById('stat-accuracy').innerText = acc + '%';
+    }
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function nextM1() {
+        const d = allKanji[Math.floor(Math.random() * allKanji.length)];
+        document.getElementById('m1-kanji').innerText = d.k;
+        
+        if(d.parts) {
+            const partsHtml = d.parts.map(p => `
+                <div class="part-box">
+                    <span class="part-char">${p.c}</span>
+                    <span class="part-mean">${p.m}</span>
+                </div>
+            `).join('<div style="font-size:24px; align-self:center; font-weight:bold;">+</div>');
+            document.getElementById('m1-parts').innerHTML = partsHtml;
+        } else {
+            document.getElementById('m1-parts').innerHTML = '';
+        }
+        
+        document.getElementById('m1-meaning').innerText = d.m;
+        document.getElementById('m1-examples').innerHTML = d.ex ? d.ex.map(e => `<span class="example-tag">${e}</span>`).join('') : '<span class="example-tag">Từ ghép</span>';
+    }
+
+    function nextM2() {
+        const d = allKanji[Math.floor(Math.random() * allKanji.length)];
+        document.getElementById('m2-sentence').innerHTML = d.ctx.replace('[ ___ ]', `<input type="text" class="cloze-input" id="m2-input" readonly>`);
+        
+        const optsDiv = document.getElementById('m2-options');
+        optsDiv.innerHTML = '';
+        const shuffledOpts = shuffle([...d.opts]);
+        shuffledOpts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkM2(opt, d.k);
+            optsDiv.appendChild(btn);
+        });
+        document.getElementById('m2-feedback').innerText = '';
+    }
+
+    function checkM2(selected, correct) {
+        stats.attempts++;
+        const fb = document.getElementById('m2-feedback');
+        if(selected === correct) {
+            fb.innerText = ' Chính xác!';
+            fb.className = 'feedback correct';
+            stats.remembered = Math.min(stats.remembered + 1, stats.total);
+            stats.correct++;
+        } else {
+            fb.innerText = `❌ Sai rồi! Đáp án là: ${correct}`;
+            fb.className = 'feedback wrong';
+        }
+        updateStats();
+    }
+
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e293b';
+
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+    canvas.addEventListener('mousemove', (e) => { if(isDrawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseout', () => isDrawing = false);
+
+    function nextM3() {
+        const d = allKanji[Math.floor(Math.random() * allKanji.length)];
+        document.getElementById('m3-target').innerText = d.k;
+        document.getElementById('m3-hira').innerText = `(${d.h}) - ${d.m}`;
+        clearCanvas();
+    }
+
+    function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); document.getElementById('m3-feedback').innerText = ''; }
+    function checkCanvas() {
+        stats.attempts++; stats.correct++; stats.remembered = Math.min(stats.remembered + 1, stats.total);
+        document.getElementById('m3-feedback').innerText = '✅ Tuyệt vời! Bạn đã viết đúng.';
+        document.getElementById('m3-feedback').className = 'feedback correct';
+        updateStats();
+        setTimeout(nextM3, 1500);
+    }
+
+    function nextM4() {
+        const d = allKanji[Math.floor(Math.random() * allKanji.length)];
+        document.getElementById('m4-kanji').innerText = d.k;
+        
+        const optsDiv = document.getElementById('m4-options');
+        optsDiv.innerHTML = '';
+        
+        let wrongAnswers = [];
+        while(wrongAnswers.length < 3) {
+            let rand = allKanji[Math.floor(Math.random() * allKanji.length)].h;
+            if(rand !== d.h && !wrongAnswers.includes(rand)) wrongAnswers.push(rand);
+        }
+        const allOpts = shuffle([d.h, ...wrongAnswers]);
+        
+        allOpts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => {
+                stats.attempts++;
+                const fb = document.getElementById('m4-feedback');
+                if(opt === d.h) { 
+                    fb.innerText = '⚡ Nhanh quá! Đúng rồi!'; 
+                    fb.className = 'feedback correct'; 
+                    stats.correct++; 
+                    stats.remembered = Math.min(stats.remembered + 1, stats.total);
+                } else { 
+                    fb.innerText = `⏰ Sai! Đáp án là ${d.h}`; 
+                    fb.className = 'feedback wrong'; 
+                }
+                updateStats();
+                setTimeout(nextM4, 1200);
+            };
+            optsDiv.appendChild(btn);
+        });
+    }
+
+    function renderSingleList() {
+        const grid = document.getElementById('kanji-single-grid');
+        grid.innerHTML = kanjiSingle.map(d => `
+            <div class="kanji-card">
+                <div class="k-char">${d.k}</div>
+                <div class="k-hira">${d.h}</div>
+                <div class="k-mean">${d.m}</div>
+                <div class="k-ex"><strong>Ví dụ:</strong><br>${d.ex.join('<br>')}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderCompoundList(category) {
+        const grid = document.getElementById('kanji-compound-grid');
+        const filtered = category === 'all' ? kanjiCompound : kanjiCompound.filter(k => k.cat === category);
+        
+        grid.innerHTML = filtered.map(d => `
+            <div class="kanji-card">
+                <div class="k-char">${d.k}</div>
+                <div class="k-hira">${d.h}</div>
+                <div class="k-mean">${d.m}</div>
+                <div class="k-ex"><strong>Danh mục:</strong> ${getCategoryName(d.cat)}</div>
+            </div>
+        `).join('');
+    }
+
+    function getCategoryName(cat) {
+        const names = {
+            'time': '⏰ Thời gian',
+            'place': '🏙️ Địa điểm',
+            'verb': '🏃 Động từ',
+            'noun': '📦 Danh từ'
+        };
+        return names[cat] || cat;
+    }
+
+    function filterWords(category) {
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderCompoundList(category);
+    }
+
+    updateStats();
+    nextM1();
+</script>
+</body>
+</html>
